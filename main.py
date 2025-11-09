@@ -16,8 +16,18 @@ GPIO.setup(ECHO, GPIO.IN)
 # --- NeoPixel setup ---
 LED_PIN = board.D18  # Make sure this matches your wiring
 NUM_PIXELS = 8
-pixels = neopixel.NeoPixel(LED_PIN, NUM_PIXELS, brightness=0.3, auto_write=False)
+pixels = neopixel.NeoPixel(LED_PIN, NUM_PIXELS, brightness=0.75, auto_write=False)
 
+def wheel(pos):
+    """Generate rainbow colors across 0–255 positions."""
+    if pos < 85:
+        return (int(pos * 3), int(255 - pos * 3), 0)
+    elif pos < 170:
+        pos -= 85
+        return (int(255 - pos * 3), 0, int(pos * 3))
+    else:
+        pos -= 170
+        return (0, int(pos * 3), int(255 - pos * 3))
 
 def get_distance():
     # Trigger pulse
@@ -40,10 +50,13 @@ def get_distance():
     distance_cm = (elapsed * 34300) / 2  # Speed of sound = 343 m/s
     return distance_cm
 
-avg_filter = deque(maxlen=20)
+avg_filter = deque(maxlen=50)
 
-max_reading = 20
-target_reading = 15
+max_reading = 444
+min_water_level = 28
+
+red_blink_timer = 0
+offset = 0
 
 try:
     while True:
@@ -55,19 +68,30 @@ try:
             pass
 
         average = sum(avg_filter) / len(avg_filter)
-        print(f"Average: {average :.2f} cm")
+        # print(f"Average: {average :.2f} cm")
 
         if dist > max_reading:
             pixels.fill((255, 255, 0))
-        elif average > 15:
-            pixels.fill((255, 0, 0))
+        elif average < min_water_level:
+            # pixels.fill((0, 255, 0))
+            for i in range(NUM_PIXELS):
+                color_index = (i * 32 + offset) % 256  # 32 spreads colors evenly across 8 LEDs
+                pixels[i] = wheel(color_index)
+            offset = (offset + 8) % 256
         else:
-            pixels.fill((0, 255, 0))
+            if (red_blink_timer == 3):
+                pixels.fill((255, 0, 0))
+                red_blink_timer = 0
+            else:
+                pixels.fill((0, 0, 0))
+                red_blink_timer += 1
 
         pixels.show()
 
-        time.sleep(0.05)
+        time.sleep(0.01)
 
 except KeyboardInterrupt:
     print("Measurement stopped by user")
     GPIO.cleanup()
+
+
