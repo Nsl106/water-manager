@@ -18,8 +18,8 @@ LED_PIN = board.D18  # Make sure this matches your wiring
 NUM_PIXELS = 8
 pixels = neopixel.NeoPixel(LED_PIN, NUM_PIXELS, brightness=0.75, auto_write=False)
 
+
 def wheel(pos):
-    """Generate rainbow colors across 0–255 positions."""
     if pos < 85:
         return (int(pos * 3), int(255 - pos * 3), 0)
     elif pos < 170:
@@ -28,6 +28,7 @@ def wheel(pos):
     else:
         pos -= 170
         return (0, int(pos * 3), int(255 - pos * 3))
+
 
 def get_distance():
     # Trigger pulse
@@ -38,11 +39,17 @@ def get_distance():
     # Wait for Echo start
     start_time = time.time()
     while GPIO.input(ECHO) == 0:
+        if (time.time() - start_time) > 0.1:
+            print("Echo Start Timeout")
+            return None
         start_time = time.time()
 
     # Wait for Echo end
     stop_time = time.time()
     while GPIO.input(ECHO) == 1:
+        if (time.time() - stop_time) > 0.1:
+            print("Echo End Timeout")
+            return None
         stop_time = time.time()
 
     # Calculate distance
@@ -50,9 +57,10 @@ def get_distance():
     distance_cm = (elapsed * 34300) / 2  # Speed of sound = 343 m/s
     return distance_cm
 
+
 avg_filter = deque(maxlen=50)
 
-max_reading = 444
+max_reading = 40
 min_water_level = 28
 
 red_blink_timer = 0
@@ -62,13 +70,17 @@ try:
     while True:
         dist = get_distance()
 
+        if dist is None:
+            time.sleep(0.01)
+            continue
+
         avg_filter.append(min(dist, max_reading))
 
         if len(avg_filter) != avg_filter.maxlen:
-            pass
+            time.sleep(0.01)
+            continue
 
         average = sum(avg_filter) / len(avg_filter)
-        # print(f"Average: {average :.2f} cm")
 
         if dist > max_reading:
             pixels.fill((255, 255, 0))
@@ -78,6 +90,7 @@ try:
                 color_index = (i * 32 + offset) % 256  # 32 spreads colors evenly across 8 LEDs
                 pixels[i] = wheel(color_index)
             offset = (offset + 8) % 256
+
         else:
             if (red_blink_timer == 3):
                 pixels.fill((255, 0, 0))
@@ -86,12 +99,13 @@ try:
                 pixels.fill((0, 0, 0))
                 red_blink_timer += 1
 
+        # print(f"Average: {average :.2f} cm")
+
         pixels.show()
 
         time.sleep(0.01)
 
 except KeyboardInterrupt:
     print("Measurement stopped by user")
+finally:
     GPIO.cleanup()
-
-
