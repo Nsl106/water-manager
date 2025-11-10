@@ -38,16 +38,20 @@ def get_distance():
 
     # Wait for Echo start
     start_time = time.time()
+    initial_start_time = start_time
+
     while GPIO.input(ECHO) == 0:
-        if (time.time() - start_time) > 0.1:
+        if (time.time() - initial_start_time) > 0.1:
             print("Echo Start Timeout")
             return None
         start_time = time.time()
 
     # Wait for Echo end
     stop_time = time.time()
+    initial_stop_time = stop_time
+
     while GPIO.input(ECHO) == 1:
-        if (time.time() - stop_time) > 0.1:
+        if (time.time() - initial_stop_time) > 0.1:
             print("Echo End Timeout")
             return None
         stop_time = time.time()
