@@ -9,15 +9,18 @@ from collections import deque
 TRIG = 23
 ECHO = 24
 
+print("Initializing GPIO...")
 GPIO.setmode(GPIO.BCM)
 GPIO.setup(TRIG, GPIO.OUT)
 GPIO.setup(ECHO, GPIO.IN)
 
 # --- NeoPixel setup ---
+print("Initializing LEDs...")
 LED_PIN = board.D18  # Make sure this matches your wiring
 NUM_PIXELS = 8
-pixels = neopixel.NeoPixel(LED_PIN, NUM_PIXELS, brightness=0.75, auto_write=False)
+pixels = neopixel.NeoPixel(LED_PIN, NUM_PIXELS, brightness=1.0, auto_write=False)
 
+print("Setup Complete!")
 
 def wheel(pos):
     if pos < 85:
